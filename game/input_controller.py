@@ -5,8 +5,8 @@ import win32con
 import time
 
 # some constants
-TURN_INCREMENT = 100  # pixels
-MOVE_DURATION = 0.5  # seconds
+# TURN_INCREMENT = 100  # pixels
+# MOVE_DURATION = 0.5  # seconds
 MOVE_PAUSE = 0.1  # seconds
 
 W = 0x11
@@ -92,7 +92,7 @@ def __click_up(button_hex_code):
     ii.mi = MouseInput(0, 0, 0, button_hex_code, 0, ctypes.pointer(extra))
     i = Input(ctypes.c_ulong(0), ii)
     ctypes.windll.user32.SendInput(1, ctypes.pointer(i), ctypes.sizeof(i))
-    
+
 def __move_cursor(x, y):
     extra = ctypes.c_ulong(0)
     ii = Input_I()
@@ -104,57 +104,57 @@ def __move_cursor(x, y):
 def __do_look_operation(arg):
     __move_cursor(*arg)
 
-def look_up():
-    """Move cursor up a distance of TURN_INCREMENT pixels.
+def look_up(increment):
+    """Move cursor up a distance of increment pixels.
     """
-    threading.Thread(target=__do_look_operation, args=((0, -TURN_INCREMENT),)).start()
+    threading.Thread(target=__do_look_operation, args=((0, -increment),)).start()
 
-def look_down():
-    """Move cursor down a distance of TURN_INCREMENT pixels.
+def look_down(increment):
+    """Move cursor down a distance of increment pixels.
     """
-    threading.Thread(target=__do_look_operation, args=((0, TURN_INCREMENT),)).start()
+    threading.Thread(target=__do_look_operation, args=((0, increment),)).start()
 
-def look_left():
-    """Move cursor left a distance of TURN_INCREMENT pixels.
+def look_left(increment):
+    """Move cursor left a distance of increment pixels.
     """
-    threading.Thread(target=__do_look_operation, args=((-TURN_INCREMENT, 0),)).start()
+    threading.Thread(target=__do_look_operation, args=((-increment, 0),)).start()
 
-def look_right():
-    """Move cursor right a distance of TURN_INCREMENT pixels.
+def look_right(increment):
+    """Move cursor right a distance of increment pixels.
     """
-    threading.Thread(target=__do_look_operation, args=((TURN_INCREMENT, 0),)).start()
+    threading.Thread(target=__do_look_operation, args=((increment, 0),)).start()
 
 
-def __do_move_operation(arg):
+def __do_move_operation(arg, duration):
     start = time.time()
-    while time.time() - start < MOVE_DURATION:
+    while time.time() - start < duration:
         __press_key(arg)
         time.sleep(MOVE_PAUSE)
         __release_key(arg)
 
-def move_forwards():
-    """Repeatedly press the W key for MOVE_DURATION seconds, with an interval
+def move_forwards(duration):
+    """Repeatedly press the W key for duration seconds, with an interval
     of MOVE_PAUSE seconds between each press.
     """
-    threading.Thread(target=__do_move_operation, args=(W,)).start()
+    threading.Thread(target=__do_move_operation, args=(W, duration)).start()
 
-def move_backwards():
-    """Repeatedly press the S key for MOVE_DURATION seconds, with an interval
+def move_backwards(duration):
+    """Repeatedly press the S key for duration seconds, with an interval
     of MOVE_PAUSE seconds between each press.
     """
-    threading.Thread(target=__do_move_operation, args=(S,)).start()
+    threading.Thread(target=__do_move_operation, args=(S, duration)).start()
 
-def move_left():
-    """Repeatedly press the A key for MOVE_DURATION seconds, with an interval
+def move_left(duration):
+    """Repeatedly press the A key for duration seconds, with an interval
     of MOVE_PAUSE seconds between each press.
     """
-    threading.Thread(target=__do_move_operation, args=(A,)).start()
+    threading.Thread(target=__do_move_operation, args=(A, duration)).start()
 
-def move_right():
-    """Repeatedly press the D key for MOVE_DURATION seconds, with an interval
+def move_right(duration):
+    """Repeatedly press the D key for duration seconds, with an interval
     of MOVE_PAUSE seconds between each press.
     """
-    threading.Thread(target=__do_move_operation, args=(D,)).start()
+    threading.Thread(target=__do_move_operation, args=(D, duration)).start()
 
 
 def __do_shoot_portal_operation(arg):
@@ -175,15 +175,18 @@ def shoot_orange_portal():
 def __test_all_operations():
     time.sleep(5)
 
-    operations = [
-        look_up, look_down, look_left, look_right,
-        move_forwards, move_backwards, move_left, move_right,
-        shoot_blue_portal, shoot_orange_portal
-    ]
+    look_up(100); time.sleep(1)
+    look_down(50); time.sleep(1)
+    look_left(100); time.sleep(1)
+    look_right(50); time.sleep(1)
 
-    for operation in operations:
-        operation()
-        time.sleep(1)
+    move_forwards(1); time.sleep(1)
+    move_backwards(0.5); time.sleep(1)
+    move_left(1); time.sleep(1)
+    move_right(0.5); time.sleep(1)
+
+    shoot_blue_portal(); time.sleep(1)
+    shoot_orange_portal(); time.sleep(1)
 
 
 if __name__ == "__main__":
