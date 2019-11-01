@@ -1,0 +1,2 @@
+model_checkpoint_path: "/nfs/ug/homes-3/j/jiangja5/Documents/Aperture/data/classifier.tfl"
+all_model_checkpoint_paths: "/nfs/ug/homes-3/j/jiangja5/Documents/Aperture/data/classifier.tfl"
