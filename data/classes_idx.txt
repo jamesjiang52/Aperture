@@ -1,0 +1,6 @@
+0 surface_non_portalable
+1 surface_portalable
+2 entry_door
+3 exit_door
+4 button
+5 weighted_cube

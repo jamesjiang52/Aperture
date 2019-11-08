@@ -46,15 +46,27 @@ network = estimator.regression(network, optimizer="adam", loss="softmax_categori
 model = dnn.DNN(network)
 
 
-def train_model():
+def train():
+    """Train and save the classifier.
+    """
     h5f = h5py.File(dataset_filepath, "r")
     X = h5f["X"]
     Y = h5f["Y"]
 
     model.fit(X, Y, n_epoch=200, validation_set=0.2, show_metric=True)
     model.save(model_filepath)
-    
-    
-def predict_label(X):
+
+
+def predict_init():
+    """Load the trained classifier.
+    Must be called before the first call to predict().
+    """
     model.load(model_filepath)
-    model.predict_label(X)
+
+
+def predict(X):
+    """Use the classifier to predict probabilities for each image in X.
+    predict_init() must be called prior to the first invocation.
+    """
+    # model.load(model_filepath)
+    return model.predict(X)
