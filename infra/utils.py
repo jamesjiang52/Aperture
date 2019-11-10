@@ -4,6 +4,7 @@ Utility functions and classes for the backend
 
 from collections import namedtuple
 from enum import Enum
+from typing import List
 
 
 class Entity(Enum):
@@ -62,6 +63,23 @@ class Action(Enum):
             Action.Interact: True
         }[self]
 
+
+Checkpoint = namedtuple('Checkpoint', ['position', 'orientation', 'action'])
+Checkpoint.__doc__ = """
+                     Data class that represents a point of interest in a solution
+                         to a chamber.
+                     :param position: 3D numpy array
+                     :param orientation: 3D numpy array
+                     :param action: Action where is_one_shot returns True 
+                         (to be executed after player reaches the desired
+                         position and orientation)
+                     """
+
+Idea = List[Checkpoint]
+Idea.__doc__ = """
+               Represents a series of Checkpoints in the order they are to be
+                   carried out
+               """
 
 EntityObservation = namedtuple('EntityObservation', ['entity', 'position', 'orientation'])
 EntityObservation.__doc__ = """

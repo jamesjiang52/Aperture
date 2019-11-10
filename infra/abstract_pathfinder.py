@@ -7,15 +7,15 @@ import threading
 
 class Pathfinder:
     """
-    Abstract class to calculate paths and notify observer objects about
-        next optimal actions
+    Abstract class to calculate paths and notify Choreographers
+        about next ideas
     """
 
     def __init__(self):
         """
         Initialize a Pathfinder object with no observers
         """
-        self.path_observers = []
+        self.observers = []
         self.search_thread = None
 
     def start(self, *args, **kwargs):
@@ -34,72 +34,50 @@ class Pathfinder:
         """
         raise NotImplementedError("run_pathfinder method must be implemented")
 
-    def notify_add_action(self, action):
+    def notify_observers(self, idea):
         """
-        Send an add_action notification to every observer with the
-            given action
-        :param action: Action
+        Call notify_idea on every observer with the given idea
+        :param idea: Idea
         :return: None
         """
-        for observer in self.path_observers:
-            observer.add_action(action)
-
-    def notify_remove_action(self, action):
-        """
-        Send a remove_action notification to every observer with
-            the given action
-        :param action: Action
-        :return: None
-        """
-        for observer in self.path_observers:
-            observer.remove_action(action)
+        for observer in self.observers:
+            observer.notify_idea(idea)
 
     def add_observer(self, observer):
         """
-        Set the given PathObserver object to receive notifications
-        :param observer: PathObserver
+        Set the given Choreographer object to receive notifications
+        :param observer: Choreographer
         :return: None
         """
-        self.path_observers.append(observer)
+        self.observers.append(observer)
 
     def remove_observer(self, observer):
         """
-        Remove the given PathObserver object from receiving notifications,
+        Remove the given Choreographer object from receiving notifications,
             returning True if successful and False otherwise
-        :param observer: PathObserver
+        :param observer: Choreographer
         :return: boolean
         """
         try:
-            self.path_observers.remove(observer)
+            self.observers.remove(observer)
             return True
         except ValueError:
             return False
 
     def get_observers(self):
         """
-        Return the list of PathObserver objects currently receiving
+        Return the list of Choreographer objects currently receiving
             notifications
-        :return: list of PathObservers
+        :return: list of Choreographers
         """
-        return self.path_observers
-
-    def set_observers(self, observers):
-        """
-        Set the observers of this object to the given list of PathObserver
-            objects, returning the previous list of observers
-        :param observers: list of PathObservers
-        :return: list of PathObservers
-        """
-        previous_observers = self.path_observers
-        self.path_observers = observers
-        return previous_observers
+        return self.observers
 
     def clear_observers(self):
         """
-        Remove all PathObserver objects from receiving notifications,
+        Remove all Choreographer objects from receiving notifications,
             returning the previous list of observers
-        :return: list of PathObservers
+        :return: list of Choreographers
         """
-        previous_observers = self.path_observers
-        self.path_observers = []
+        previous_observers = self.observers
+        self.observers = []
         return previous_observers

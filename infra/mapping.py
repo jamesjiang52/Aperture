@@ -5,6 +5,7 @@ Implementation of a SLAM algorithm in the context of Portal 2,
 
 import numpy as np
 
+import utils
 from abstract_view_observer import ViewObserver
 from abstract_pathfinder import Pathfinder
 
@@ -17,6 +18,30 @@ class Map(ViewObserver, Pathfinder):
     """
 
     # pylint: disable=too-many-instance-attributes
+
+    def __init__(self):
+        """
+        Initialize an empty Map object
+        """
+        super().__init__()
+
+        self.frames_observed = 0
+        self.time = 0
+
+        self.entities = []
+        self.entity_positions = None
+        self.entity_orientations = None
+
+        self.surfaces = []
+        self.surface_positions = None
+        self.surface_orientations = None
+
+        self.references = []
+        self.reference_positions = None
+
+        self.last_observation = None
+
+    # ------------------- BEGIN VIEWOBSERVER IMPLEMENTATION -------------------
 
     # Maximum magnitude of the difference between two position vectors
     # for them to be considered the same, to compensate for net
@@ -37,25 +62,6 @@ class Map(ViewObserver, Pathfinder):
     # two different frames for them to be considered as referring to
     # the same object
     min_or_cos_offset = 0.97
-
-    def __init__(self):
-        """
-        Initialize an empty Map object
-        """
-        super().__init__()
-
-        self.entities = []
-        self.entity_positions = None
-        self.entity_orientations = None
-
-        self.surfaces = []
-        self.surface_positions = None
-        self.surface_orientations = None
-
-        self.references = []
-        self.reference_positions = None
-
-        self.last_observation = None
 
     @staticmethod
     def normalize(arr):
@@ -368,7 +374,7 @@ class Map(ViewObserver, Pathfinder):
 
         return pairs
 
-    def add_observation(self, entities, surfaces, references):
+    def add_observation(self, entities, surfaces, references, time):
         """
         Add the given EntityObservations, SurfaceObservations, and
             ReferenceObservations to the map. This method makes the
@@ -384,8 +390,11 @@ class Map(ViewObserver, Pathfinder):
         :param entities: iterable of EntityObservation objects
         :param surfaces: iterable of SurfaceObservation objects
         :param references: iterable of ReferenceObservation objects
+        :param time: float representing the time of the observation
         :return: None
         """
+
+        self.frames_observed += 1
 
         # The very first frame observed; store the observations and return
         if not self.last_observation:
@@ -421,6 +430,45 @@ class Map(ViewObserver, Pathfinder):
         self.__update_references(position_update, references)
 
         self.last_observation = [entities, surfaces, references]
+        self.time = time
+
+    def get_player_position(self, confidence_window=None):
+        """
+        Must be implemented by a subclass to get the position of the
+            player. If confidence_window is not None, the second return
+            value will represent the error such that the probability that
+            the actual player position is within the error is greater
+            than the window.
+        TODO
+        :param confidence_window: 0 <= float <= 1 or None
+        :return: (3D numpy array, 3D numpy array) tuple
+        """
+        return np.zeros(3), np.zeros(3)
+
+    def get_player_orientation(self, confidence_window=None):
+        """
+        Must be implemented by a subclass to get the orientation of the
+            player. If confidence_window is not None, the second return
+            value will represent the error such that the probability that
+            the actual player orientation is within the error is greater
+            than the window.
+        TODO
+        :param confidence_window: 0 <= float <= 1 or None
+        :return: (3D numpy array, 3D numpy array) tuple
+        """
+        return np.zeros(3), np.zeros(3)
+
+    # ------------------- END VIEWOBSERVER IMPLEMENTATION -------------------
+
+    # ------------------- BEGIN PATHFINDER IMPLEMENTATION -------------------
+
+    def is_exit_found(self):
+        """
+        Returns true if the exit has been observed at least once, and
+            false otherwise
+        :return: boolean
+        """
+        return utils.Entity.Exit in self.entities
 
     def run_pathfinder(self, *args, **kwargs):
         """
