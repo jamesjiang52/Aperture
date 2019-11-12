@@ -15,6 +15,24 @@ class Entity(Enum):
     Exit = 1
     Button = 2
     Box = 3
+    SmallButton = 4
+    Launcher = 5
+
+    def has_effect(self):
+        """
+        Returns True if the Entity can have an effect associated
+            with it. This can be used by a search algorithm to
+            get more information about the chamber
+        :return: boolean
+        """
+        return {
+            Entity.Entrance: False,
+            Entity.Exit: False,
+            Entity.Button: True,
+            Entity.Box: False,
+            Entity.SmallButton: True,
+            Entity.Launcher: True
+        }[self]
 
 
 class Surface(Enum):
