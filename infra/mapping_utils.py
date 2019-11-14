@@ -36,13 +36,14 @@ class EntityInstance:
         :param entity: Entity
         """
         self.entity = entity
+        self.effect_observations = []
         self.effect = None
 
-    def set_effect(self, before, *after):
+    def test_effect(self, before, *after):
         """
-        Set the effect of the EntityInstance. An effect is a broad term for
-            any change in the state of a chamber shortly after an action
-            is performed.
+        Add an observation of an effect to this EntityInstance. An observation
+            of an effect consists of observations of the state of a chamber
+            shortly after the Entity was interacted with.
         :param before: Observation, representing the state before this
             Entity was interacted with
         :param after: TimedObservations, each representing the state after
@@ -53,7 +54,18 @@ class EntityInstance:
         if not self.entity.has_effect():
             raise ValueError(f"Effect cannot be set for entity of type {self.entity.value}")
 
-        self.effect = (before, *after)
+        self.effect_observations.append((before, *after))
+
+    def deduce_effect(self):
+        """
+        From the provided effect observations, deduce the effect that this
+            entity has. Return True if the effect was successfully deduced
+            and False otherwise.
+        For best results, call this after a few calls of test_effect
+        :return: boolean
+        TODO
+        """
+        raise NotImplementedError("TODO: implement this")
 
     def needs_exploration(self):
         """

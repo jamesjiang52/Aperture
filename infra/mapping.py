@@ -31,13 +31,22 @@ class Map(ViewObserver, Pathfinder):
         self.entities = []
         self.entity_positions = None
         self.entity_orientations = None
+        self.entity_positions_absolute = None
+        self.entity_orientations_absolute = None
 
         self.surfaces = []
         self.surface_positions = None
         self.surface_orientations = None
+        self.surface_positions_absolute = None
+        self.surface_orientations_absolute = None
 
         self.references = []
         self.reference_positions = None
+        self.reference_positions_absolute = None
+
+        self.player_position = None
+        self.player_orientation = None
+        self.player_orientation_update = None
 
         self.last_observation = None
 
@@ -283,12 +292,20 @@ class Map(ViewObserver, Pathfinder):
         new_entities = self.__filter_entities(new_entities)
 
         for entity in new_entities:
+            entity_absolute_position = (self.player_orientation_update @ entity.position +
+                                        self.player_position).reshape((3, 1))
+            entity_absolute_orientation = (self.player_orientation_update @
+                                           entity.orientation).reshape((3, 1))
             if self.entities:
                 np.append(self.entity_positions, entity.position.reshape((3, 1)), axis=1)
                 np.append(self.entity_orientations, entity.orientation.reshape((3, 1)), axis=1)
+                np.append(self.entity_positions_absolute, entity_absolute_position, axis=1)
+                np.append(self.entity_orientations_absolute, entity_absolute_orientation, axis=1)
             else:
                 self.entity_positions = entity.position.reshape((3, 1))
                 self.entity_orientations = entity.orientation.reshape((3, 1))
+                self.entity_positions_absolute = entity_absolute_position
+                self.entity_orientations_absolute = entity_absolute_orientation
             self.entities.append(entity.entity)
 
     def __update_surfaces(self, position_update, orientation_update, new_surfaces):
@@ -308,12 +325,22 @@ class Map(ViewObserver, Pathfinder):
             self.surface_orientations = orientation_update @ self.surface_orientations
 
         for surface in new_surfaces:
+            surface_absolute_position = np.append(np.identity(3),
+                                                  self.player_position.reshape(3, 1), axis=1) @ \
+                                        np.vstack([self.player_orientation_update @ surface.corners,
+                                                   np.ones(surface.corners.shape[1])])
+            surface_absolute_orientation = (self.player_orientation_update @
+                                            surface.orientation).reshape((3, 1))
             if self.surfaces:
                 np.append(self.surface_positions, surface.corners, axis=1)
                 np.append(self.surface_orientations, surface.orientation.reshape((3, 1)), axis=1)
+                np.append(self.surface_positions_absolute, surface_absolute_position, axis=1)
+                np.append(self.surface_orientations_absolute, surface_absolute_orientation, axis=1)
             else:
                 self.surface_positions = surface.corners
                 self.surface_orientations = surface.orientation.reshape((3, 1))
+                self.surface_positions_absolute = surface_absolute_position
+                self.surface_orientations_absolute = surface_absolute_orientation
             self.surfaces.append(surface.surface)
 
     def __update_references(self, position_update, new_references):
@@ -332,11 +359,35 @@ class Map(ViewObserver, Pathfinder):
         new_references = self.__filter_references(new_references)
 
         for reference in new_references:
+            reference_absolute_position = (self.player_orientation_update @ reference.position +
+                                           self.player_position).reshape((3, 1))
             if self.references:
                 np.append(self.reference_positions, reference.position.reshape((3, 1)), axis=1)
+                np.append(self.reference_positions_absolute, reference_absolute_position, axis=1)
             else:
                 self.reference_positions = reference.position.reshape((3, 1))
+                self.reference_positions_absolute = reference_absolute_position
             self.references.append(reference.id)
+
+    def __update_player(self, position_update, orientation_update):
+        """
+        Update the position and orientation of the player with respect
+            to the absolute map.
+        This method must be called before calling any other update method,
+            since those use the player's new position and orientation
+        :param position_update: 3x4 numpy array
+        :param orientation_update: 3x3 numpy array
+        :return: None
+        """
+        if not self.player_position:
+            self.player_position = np.array([0, 0, 0])
+            self.player_orientation = np.array([0, 1, 0])
+            self.player_orientation_update = np.identity(3)
+        else:
+            self.player_position -= (orientation_update.transpose() @ position_update)[:, 3]
+            self.player_orientation = orientation_update.transpose() @ self.player_orientation
+            self.player_orientation_update = orientation_update.transpose() @ \
+                                             self.player_orientation_update
 
     def __find_common_entities(self, new_entities):
         """
@@ -398,10 +449,12 @@ class Map(ViewObserver, Pathfinder):
 
         # The very first frame observed; store the observations and return
         if not self.last_observation:
+            self.__update_player(None, None)
             self.__update_entities(None, None, entities)
             self.__update_surfaces(None, None, surfaces)
             self.__update_references(None, references)
             self.last_observation = [entities, surfaces, references]
+            self.time = time
             return
 
         e_common = self.__find_common_entities(entities)
@@ -425,6 +478,7 @@ class Map(ViewObserver, Pathfinder):
         else:
             raise ValueError("Not enough information given by parameters to update map")
 
+        self.__update_player(position_update, orientation_update)
         self.__update_entities(position_update, orientation_update, entities)
         self.__update_surfaces(position_update, orientation_update, surfaces)
         self.__update_references(position_update, references)
@@ -434,29 +488,19 @@ class Map(ViewObserver, Pathfinder):
 
     def get_player_position(self, confidence_window=None):
         """
-        Must be implemented by a subclass to get the position of the
-            player. If confidence_window is not None, the second return
-            value will represent the error such that the probability that
-            the actual player position is within the error is greater
-            than the window.
-        TODO
+        Returns the absolute position of the player and the 3D zero vector
         :param confidence_window: 0 <= float <= 1 or None
         :return: (3D numpy array, 3D numpy array) tuple
         """
-        return np.zeros(3), np.zeros(3)
+        return self.player_position, np.zeros(3)
 
     def get_player_orientation(self, confidence_window=None):
         """
-        Must be implemented by a subclass to get the orientation of the
-            player. If confidence_window is not None, the second return
-            value will represent the error such that the probability that
-            the actual player orientation is within the error is greater
-            than the window.
-        TODO
+        Returns the absolute orientation of the player and the 3D zero vector
         :param confidence_window: 0 <= float <= 1 or None
         :return: (3D numpy array, 3D numpy array) tuple
         """
-        return np.zeros(3), np.zeros(3)
+        return self.player_orientation, np.zeros(3)
 
     # ------------------- END VIEWOBSERVER IMPLEMENTATION -------------------
 
