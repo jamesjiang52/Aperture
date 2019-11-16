@@ -2,7 +2,9 @@
 Provide the Pathfinder class
 """
 
-import threading
+from utils import Payload
+from abstract_view_observer import ViewObserver
+from abstract_choreographer import Choreographer
 
 
 class Pathfinder:
@@ -11,73 +13,38 @@ class Pathfinder:
         about next ideas
     """
 
-    def __init__(self):
-        """
-        Initialize a Pathfinder object with no observers
-        """
-        self.observers = []
-        self.search_thread = None
+    PAUSE_GRANTED = 11
+    MAP_INFO = 12
 
-    def start(self, *args, **kwargs):
+    def __init__(self, conn_to_view_observer, conn_to_choreographer):
         """
-        Spawn a separate thread that runs the implementation of the
-            pathfinding algorithm
+        Initialize a Pathfinder with the given connections to a
+            ViewObserver object and a Choreographer object
+        :param conn_to_view_observer: multiprocessing.Connection
+        :param conn_to_choreographer: multiprocessing.Connection
+        """
+        self.conn_to_view_observer = conn_to_view_observer
+        self.conn_to_choreographer = conn_to_choreographer
+
+    def main(self):
+        """
+        Main entry point
         :return: None
         """
-        self.search_thread = threading.Thread(target=self.run_pathfinder, args=args, kwargs=kwargs)
-        self.search_thread.start()
+        self.run_pathfinder()
 
-    def run_pathfinder(self, *args, **kwargs):
+    def request_pause(self):
+        self.conn_to_choreographer.send(Payload(Choreographer.PAUSE_REQUEST))
+
+    def allow_resume(self):
+        self.conn_to_choreographer.send(Payload(Choreographer.RESUME))
+
+    def __handle_pause_granted(self):
+        self.conn_to_view_observer.send(Payload(ViewObserver.MAP_INFO_REQUEST))
+
+    def run_pathfinder(self):
         """
         Run the pathfinding algorithm
         :return: None
         """
         raise NotImplementedError("run_pathfinder method must be implemented")
-
-    def notify_observers(self, idea):
-        """
-        Call notify_idea on every observer with the given idea
-        :param idea: Idea
-        :return: None
-        """
-        for observer in self.observers:
-            observer.notify_idea(idea)
-
-    def add_observer(self, observer):
-        """
-        Set the given Choreographer object to receive notifications
-        :param observer: Choreographer
-        :return: None
-        """
-        self.observers.append(observer)
-
-    def remove_observer(self, observer):
-        """
-        Remove the given Choreographer object from receiving notifications,
-            returning True if successful and False otherwise
-        :param observer: Choreographer
-        :return: boolean
-        """
-        try:
-            self.observers.remove(observer)
-            return True
-        except ValueError:
-            return False
-
-    def get_observers(self):
-        """
-        Return the list of Choreographer objects currently receiving
-            notifications
-        :return: list of Choreographers
-        """
-        return self.observers
-
-    def clear_observers(self):
-        """
-        Remove all Choreographer objects from receiving notifications,
-            returning the previous list of observers
-        :return: list of Choreographers
-        """
-        previous_observers = self.observers
-        self.observers = []
-        return previous_observers

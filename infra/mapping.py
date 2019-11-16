@@ -50,8 +50,6 @@ class Map(ViewObserver, Pathfinder):
 
         self.last_observation = None
 
-    # ------------------- BEGIN VIEWOBSERVER IMPLEMENTATION -------------------
-
     # Maximum magnitude of the difference between two position vectors
     # for them to be considered the same, to compensate for net
     # prediction error
@@ -501,23 +499,3 @@ class Map(ViewObserver, Pathfinder):
         :return: (3D numpy array, 3D numpy array) tuple
         """
         return self.player_orientation, np.zeros(3)
-
-    # ------------------- END VIEWOBSERVER IMPLEMENTATION -------------------
-
-    # ------------------- BEGIN PATHFINDER IMPLEMENTATION -------------------
-
-    def is_exit_found(self):
-        """
-        Returns true if the exit has been observed at least once, and
-            false otherwise
-        :return: boolean
-        """
-        return utils.Entity.Exit in self.entities
-
-    def run_pathfinder(self, *args, **kwargs):
-        """
-        TODO: implement this
-        :param args: arguments
-        :param kwargs: keyword arguments
-        :return: None
-        """

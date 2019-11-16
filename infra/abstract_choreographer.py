@@ -2,6 +2,10 @@
 Provide the Choreographer class
 """
 
+from utils import Payload
+from abstract_view_observer import ViewObserver
+from abstract_pathfinder import Pathfinder
+
 
 class Choreographer:
     """
@@ -10,38 +14,77 @@ class Choreographer:
         observations
     """
 
-    def __init__(self, view_observer=None, pathfinder=None):
-        """
-        Initialize a choreographer object with the given ViewObserver
-            and Pathfinder objects
-        :param view_observer: ViewObserver to query view information from
-        :param pathfinder: Pathfinder to receive ideas from
-        """
-        self.view_observer = view_observer
-        self.pathfinder = pathfinder
+    PAUSE_REQUEST = 1
+    RESUME = 2
+    NEW_IDEA = 3
+    PLAYER_INFO = 4
 
-    def set_view_observer(self, view_observer):
+    def __init__(self, conn_to_view_observer, conn_to_pathfinder):
         """
-        Set this Choreographer object to query view information from
-            the ViewObserver object given
-        :param view_observer: ViewObserver or None
+        Initialize a Choreographer with the given connections to a
+            ViewObserver object and a Pathfinder object
+        :param conn_to_view_observer: multiprocessing.Connection
+        :param conn_to_pathfinder: multiprocessing.Connection
+        """
+        self.__conn_to_view_observer = conn_to_view_observer
+        self.__conn_to_pathfinder = conn_to_pathfinder
+
+    def main(self):
+        """
+        Main entry point
+        TODO: change this based on what james decides to do
         :return: None
         """
-        self.view_observer = view_observer
 
-    def set_pathfinder(self, pathfinder):
-        """
-        Set this Choreographer object to receive notifications from
-            the Pathfinder object given
-        :param pathfinder: Pathfinder or None
-        :return: None
-        """
-        self.pathfinder = pathfinder
+    def request_player_info(self):
+        self.__conn_to_view_observer.send(Payload(ViewObserver.PLAYER_INFO_REQUEST))
 
-    def notify_idea(self, idea):
+    def __handle_pause_request(self):
+        if self.prepare_pause():
+            self.__conn_to_pathfinder.send(Payload(Pathfinder.PAUSE_GRANTED))
+
+    def __handle_resume(self):
+        self.resume()
+
+    def prepare_pause(self):
+        """
+        TODO
+        :return: boolean (if pause is granted), must stop all actions
+        """
+
+    def resume(self):
+        """
+        TODO
+        :return:
+        """
+
+    def new_idea_provided(self, idea):
         """
         Must be implemented by a subclass to handle notification events
         :param idea: Idea
         :return: None
         """
         raise NotImplementedError("notify_idea method must be implemented")
+
+    def is_running(self):
+        """
+        Must return True if this object is currently sending and
+            receiving input and output from the game, and False
+            otherwise
+        :return: boolean
+        """
+        raise NotImplementedError("is_running method must be implemented")
+
+    def request_pause(self):
+        """
+
+        :return: None
+        """
+        raise NotImplementedError("request_pause method must be implemented")
+
+    def resume(self):
+        """
+
+        :return: None
+        """
+        raise NotImplementedError("resume method must be implemented")

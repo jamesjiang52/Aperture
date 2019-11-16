@@ -124,3 +124,5 @@ ReferenceObservation.__doc__ = """
                                :param position: 3D numpy array
                                :param id: int
                                """
+
+Payload = namedtuple('Payload', ['code', 'data'], defaults=(None,))
