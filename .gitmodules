@@ -1,0 +1,4 @@
+[submodule "Qualifiers"]
+	path = Qualifiers
+	url = https://github.com/eddddddy/Qualifiers.git
+	branch = master
