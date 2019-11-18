@@ -2,11 +2,13 @@
 Provide the ViewObserver class
 """
 
+from ..Qualifiers.qualifiers import qualify, private, public, final
 from utils import Payload
 from abstract_pathfinder import Pathfinder
 from abstract_choreographer import Choreographer
 
 
+@qualify
 class ViewObserver:
     """
     Abstract class that receives notifications containing observations
@@ -16,6 +18,7 @@ class ViewObserver:
     PLAYER_INFO_REQUEST = 21
     MAP_INFO_REQUEST = 22
 
+    @public
     def __init__(self, conn_to_pathfinder, conn_to_choreographer):
         """
         Initialize a ViewObserver with the given connections to a
@@ -26,21 +29,35 @@ class ViewObserver:
         self.conn_to_pathfinder = conn_to_pathfinder
         self.conn_to_choreographer = conn_to_choreographer
 
+    @public
+    @final
     def main(self):
         """
         Main entry point
-        TODO: change this based on what james decides to do
         :return: None
         """
 
-    def __handle_player_info_request(self):
+    @private
+    @final
+    def handle_player_info_request(self):
+        """
+        Handle the PLAYER_INFO_REQUEST message
+        :return: None
+        """
         player_info = (self.get_player_position(), self.get_player_orientation())
         self.conn_to_choreographer.send(Payload(Choreographer.PLAYER_INFO, player_info))
 
-    def __handle_map_info_request(self):
-        map_info = self.get_map_info()
+    @private
+    @final
+    def handle_map_info_request(self):
+        """
+        Handle the MAP_INFO_REQUEST message
+        :return: None
+        """
+        map_info = self.get_chamber_state()
         self.conn_to_pathfinder.send(Payload(Pathfinder.MAP_INFO, map_info))
 
+    @public
     def add_observation(self, entities, surfaces, references, time):
         """
         Must be implemented by a subclass to handle observation events
@@ -52,6 +69,7 @@ class ViewObserver:
         """
         raise NotImplementedError("add_observation method must be implemented")
 
+    @public
     def get_chamber_state(self):
         """
         Must be implemented by a subclass to return information about
@@ -61,6 +79,7 @@ class ViewObserver:
         """
         raise NotImplementedError("get_chamber_state method must be implemented")
 
+    @public
     def get_player_position(self, confidence_window=None):
         """
         Must be implemented by a subclass to get the position of the
@@ -73,6 +92,7 @@ class ViewObserver:
         """
         raise NotImplementedError("get_player_position method must be implemented")
 
+    @public
     def get_player_orientation(self, confidence_window=None):
         """
         Must be implemented by a subclass to get the orientation of the
@@ -84,7 +104,3 @@ class ViewObserver:
         :return: (3D numpy array, 3D numpy array) tuple
         """
         raise NotImplementedError("get_player_orientation method must be implemented")
-
-    def get_map_info(self):
-        """this should be implemented on my other branch"""
-        return "fdsadfsadf"

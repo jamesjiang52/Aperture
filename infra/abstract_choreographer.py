@@ -32,7 +32,6 @@ class Choreographer:
     def main(self):
         """
         Main entry point
-        TODO: change this based on what james decides to do
         :return: None
         """
 

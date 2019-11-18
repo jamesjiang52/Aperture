@@ -5,12 +5,12 @@ Implementation of a SLAM algorithm in the context of Portal 2,
 
 import numpy as np
 
-import utils
+from ..Qualifiers.qualifiers import qualify, private, protected, public, final
 from abstract_view_observer import ViewObserver
-from abstract_pathfinder import Pathfinder
 
 
-class Map(ViewObserver, Pathfinder):
+@qualify
+class Map(ViewObserver):
     """
     Class that receives notifications containing observations from the game,
         stores them internally, and determines the next best action to
@@ -19,11 +19,11 @@ class Map(ViewObserver, Pathfinder):
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self):
+    def __init__(self, conn_to_pathfinder, conn_to_choreographer):
         """
         Initialize an empty Map object
         """
-        super().__init__()
+        super().__init__(conn_to_pathfinder, conn_to_choreographer)
 
         self.frames_observed = 0
         self.time = 0
@@ -483,6 +483,15 @@ class Map(ViewObserver, Pathfinder):
 
         self.last_observation = [entities, surfaces, references]
         self.time = time
+
+    def get_chamber_state(self):
+        """
+        Return information about all entities, surfaces, and references
+            that have been observed, in absolute coordinates
+        :return: (list of EntityObservations, list of SurfaceObservations,
+            list of ReferenceObservations) tuple
+        """
+        pass
 
     def get_player_position(self, confidence_window=None):
         """
