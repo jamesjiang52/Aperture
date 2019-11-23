@@ -2,10 +2,11 @@
 Provide the Choreographer class
 """
 
+from threading import Thread, RLock
+
 from ..Qualifiers.qualifiers import qualify, private, protected, public, final
 from utils import Payload
 from abstract_view_observer import ViewObserver
-from abstract_pathfinder import Pathfinder
 
 
 @qualify
@@ -16,12 +17,8 @@ class Choreographer:
         observations
     """
 
-    # --------------------------------- PRIVATE STATIC FIELDS --------------------------------- #
-
     # --------------------------------- PUBLIC STATIC FIELDS ---------------------------------- #
 
-    PAUSE_REQUEST = 1
-    RESUME = 2
     NEW_IDEA = 3
     PLAYER_INFO = 4
 
@@ -38,6 +35,15 @@ class Choreographer:
         self.__conn_to_view_observer = conn_to_view_observer
         self.__conn_to_pathfinder = conn_to_pathfinder
 
+        self.__choreographer_thread = None
+        self.__player_lock = RLock()
+        self.__idea_lock = RLock()
+
+        self.__player_info_requested = False
+        self.__player_info = None
+
+        self.__current_idea = None
+
     # --------------------------------- MAIN EVENT LOOP ---------------------------------------- #
 
     @public
@@ -47,29 +53,24 @@ class Choreographer:
         Main entry point
         :return: None
         """
+        self.__choreographer_thread = Thread(target=self.run_choreography)
+        self.__choreographer_thread.start()
+
+        while True:
+            self.request_player_info()
+
+            while self.__conn_to_pathfinder.poll():
+                payload = self.__conn_to_pathfinder.recv()
+                {
+                    Choreographer.NEW_IDEA: self.handle_new_idea
+                }[payload.code](payload)
+
+            payload = self.__conn_to_view_observer.recv()
+            {
+                Choreographer.PLAYER_INFO: self.handle_player_info
+            }[payload.code](payload)
 
     # --------------------------------- HELPER FUNCTIONS -------------------------------------- #
-
-    @private
-    @final
-    def handle_pause_request(self, payload):
-        """
-        Handle the PAUSE_REQUEST message
-        :param payload: Payload
-        :return: None
-        """
-        if self.prepare_pause():
-            self.__conn_to_pathfinder.send(Payload(Pathfinder.PAUSE_GRANTED))
-
-    @private
-    @final
-    def handle_resume(self, payload):
-        """
-        Handle the RESUME message
-        :param payload: Payload
-        :return: None
-        """
-        self.resume()
 
     @private
     @final
@@ -79,7 +80,8 @@ class Choreographer:
         :param payload: Payload
         :return: None
         """
-        pass
+        with self.__idea_lock:
+            self.__current_idea = payload.data
 
     @private
     @final
@@ -89,7 +91,10 @@ class Choreographer:
         :param payload: Payload
         :return: None
         """
-        pass
+        with self.__player_lock:
+            if self.__player_info_requested:
+                self.__player_info = payload.data
+                self.__player_info_requested = False
 
     @private
     @final
@@ -98,33 +103,38 @@ class Choreographer:
         Request player info from the ViewObserver
         :return: None
         """
-        self.__conn_to_view_observer.send(Payload(ViewObserver.PLAYER_INFO_REQUEST))
+        if not self.__player_info_requested:
+            self.__conn_to_view_observer.send(Payload(ViewObserver.PLAYER_INFO_REQUEST))
+            self.__player_info_requested = True
 
-    # --------------------------------- PROPERTIES -------------------------------------------- #
+    # --------------------------------- SUBCLASS INTERFACE ------------------------------------ #
+
+    @property
+    @protected
+    def player_info(self):
+        """
+        Get player info
+        """
+        with self.__player_lock:
+            return self.__player_info
+
+    @property
+    @protected
+    def idea(self):
+        """
+        Get the current idea
+        """
+        with self.__idea_lock:
+            return self.__current_idea
 
     # --------------------------------- ABSTRACT METHODS -------------------------------------- #
 
     @protected
-    def prepare_pause(self):
+    def run_choreography(self):
         """
-        TODO
-        :return: boolean (if pause is granted), must stop all actions
-        """
-        raise NotImplementedError("prepare_pause method must be implemented")
-
-    @protected
-    def resume(self):
-        """
-        TODO
-        :return:
-        """
-        raise NotImplementedError("resume method must be implemented")
-
-    @protected
-    def new_idea_provided(self, idea):
-        """
-        Must be implemented by a subclass to handle notification events
-        :param idea: Idea
+        Start managing interactions between the player and the game. This
+            method can make use of self.player_info to get the most
+            recent player info and self.idea to get the most recent idea.
         :return: None
         """
-        raise NotImplementedError("notify_idea method must be implemented")
+        raise NotImplementedError("run_choreography method must be implemented")

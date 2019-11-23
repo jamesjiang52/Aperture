@@ -2,6 +2,9 @@
 Provide the Pathfinder class
 """
 
+from time import time, sleep
+from threading import Thread, RLock
+
 from ..Qualifiers.qualifiers import qualify, private, protected, public, final
 from utils import Payload
 from abstract_view_observer import ViewObserver
@@ -17,10 +20,10 @@ class Pathfinder:
 
     # --------------------------------- PRIVATE STATIC FIELDS --------------------------------- #
 
+    __ITERATION_TIME = 0.1
+
     # --------------------------------- PUBLIC STATIC FIELDS ---------------------------------- #
 
-    PAUSE_GRANTED = 11
-    PAUSE_DENIED = 12
     MAP_INFO = 13
 
     # --------------------------------- CONSTRUCTOR ------------------------------------------- #
@@ -36,12 +39,14 @@ class Pathfinder:
         self.__conn_to_view_observer = conn_to_view_observer
         self.__conn_to_choreographer = conn_to_choreographer
 
+        self.__pathfinder_thread = None
+        self.__idea_lock = RLock()
+        self.__map_lock = RLock()
+
         self.__choreographer_has_idea = True
         self.__current_idea = None
 
         self.__require_map_update = False
-        self.__pause_requested = False
-        self.__choreographer_is_paused = False
         self.__map_info_requested = False
         self.__current_map = None
 
@@ -54,15 +59,11 @@ class Pathfinder:
         Main entry point
         :return: None
         """
-        while True:
-            self.run_pathfinder_iteration()
+        self.__pathfinder_thread = Thread(target=self.run_pathfinder)
+        self.__pathfinder_thread.start()
 
-            while self.__conn_to_choreographer.poll():
-                payload = self.__conn_to_choreographer.recv()
-                {
-                    Pathfinder.PAUSE_GRANTED: self.handle_pause_granted,
-                    Pathfinder.PAUSE_DENIED: self.handle_pause_denied
-                }[payload.code](payload)
+        while True:
+            start = time()
 
             while self.__conn_to_view_observer.poll():
                 payload = self.__conn_to_view_observer.recv()
@@ -74,35 +75,11 @@ class Pathfinder:
                 self.notify_idea()
 
             if self.__require_map_update:
-                if self.__choreographer_is_paused:
-                    self.request_map_info()
-                else:
-                    self.request_pause()
+                self.request_map_info()
+
+            sleep(Pathfinder.__ITERATION_TIME - time() + start)
 
     # --------------------------------- HELPER FUNCTIONS -------------------------------------- #
-
-    @private
-    @final
-    def handle_pause_granted(self, payload):
-        """
-        Handle the PAUSE_GRANTED message
-        :param payload: Payload
-        :return: None
-        """
-        if not self.__choreographer_is_paused:
-            self.__choreographer_is_paused = True
-            self.__conn_to_view_observer.send(Payload(ViewObserver.MAP_INFO_REQUEST))
-
-    @private
-    @final
-    def handle_pause_denied(self, payload):
-        """
-        Handle the PAUSE_DENIED message
-        :param payload: Payload
-        :return: None
-        """
-        if self.__pause_requested:
-            self.__pause_requested = False
 
     @private
     @final
@@ -112,36 +89,12 @@ class Pathfinder:
         :param payload: Payload
         :return: None
         """
-        if self.__require_map_update:
-            self.__current_map = payload.data
-            self.__require_map_update = False
-            self.__map_info_requested = False
-            self.allow_resume()
-
-    @private
-    @final
-    def request_pause(self):
-        """
-        Request the Choreographer to pause so that chamber information
-            can be retrieved from the ViewObserver without losing any
-            frames
-        :return: None
-        """
-        if not self.__pause_requested:
-            self.__conn_to_choreographer.send(Payload(Choreographer.PAUSE_REQUEST))
-            self.__pause_requested = True
-
-    @private
-    @final
-    def allow_resume(self):
-        """
-        Allow the Choreographer to resume after a pause
-        :return: None
-        """
-        if self.__choreographer_is_paused:
-            self.__conn_to_choreographer.send(Payload(Choreographer.RESUME))
-            self.__choreographer_is_paused = False
-            self.__pause_requested = False
+        with self.__map_lock:
+            if self.__require_map_update:
+                self.__current_map = payload.data
+                self.__require_map_update = False
+                self.__map_info_requested = False
+                self.allow_resume()
 
     @private
     @final
@@ -150,9 +103,11 @@ class Pathfinder:
         Notify the Choreographer of a new idea
         :return: None
         """
-        if not self.__choreographer_has_idea:
-            self.__conn_to_choreographer.send(Payload(Choreographer.NEW_IDEA, self.__current_idea))
-            self.__choreographer_has_idea = True
+        with self.__idea_lock:
+            if not self.__choreographer_has_idea:
+                self.__conn_to_choreographer.send(
+                    Payload(Choreographer.NEW_IDEA, self.__current_idea))
+                self.__choreographer_has_idea = True
 
     @private
     @final
@@ -165,7 +120,7 @@ class Pathfinder:
             self.__conn_to_view_observer.send(Payload(ViewObserver.MAP_INFO_REQUEST))
             self.__map_info_requested = True
 
-    # --------------------------------- PROPERTIES -------------------------------------------- #
+    # --------------------------------- SUBCLASS INTERFACE ------------------------------------ #
 
     @property
     @protected
@@ -173,7 +128,8 @@ class Pathfinder:
         """
         Get the current idea
         """
-        return self.__current_idea
+        with self.__idea_lock:
+            return self.__current_idea
 
     @idea.setter
     @protected
@@ -181,25 +137,9 @@ class Pathfinder:
         """
         Setter for idea
         """
-        self.__current_idea = idea
-        self.__choreographer_has_idea = False
-
-    @property
-    @protected
-    def update_map(self):
-        """
-        Get if map requires update
-        """
-        return self.__require_map_update
-
-    @update_map.setter
-    @protected
-    def update_map(self, value):
-        """
-        Setter for update_map
-        """
-        if value:
-            self.__require_map_update = value
+        with self.__idea_lock:
+            self.__current_idea = idea
+            self.__choreographer_has_idea = False
 
     @property
     @protected
@@ -207,17 +147,29 @@ class Pathfinder:
         """
         Get the current map
         """
-        return self.__current_map
+        with self.__map_lock:
+            return self.__current_map
+
+    @protected
+    def require_map_update(self):
+        """
+        Set the map to require an update from the ViewObserver
+        :return: None
+        """
+        with self.__map_lock:
+            self.__require_map_update = True
 
     # --------------------------------- ABSTRACT METHODS -------------------------------------- #
 
     @protected
-    def run_pathfinder_iteration(self):
+    def run_pathfinder(self):
         """
-        Must be implemented by a subclass to run an iteration of its pathfinding
-            algorithm. The main event loop will call this method on every iteration.
-            This method should set the idea field if a new idea is found or set
-            the update_map field if more map information is needed.
+        Must be implemented by a subclass to run its pathfinding algorithm. This method
+            should call self.idea to get the current idea and set the value of self.idea
+            once another idea is found. This method can make use of self.map to get the
+            chamber entities currently known to the ViewObserver, and can call
+            self.require_map_update() at any point if the search requires more chamber
+            information
         :return: None
         """
-        raise NotImplementedError("run_pathfinder_iteration method must be implemented")
+        raise NotImplementedError("run_pathfinder method must be implemented")

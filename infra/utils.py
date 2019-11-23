@@ -82,7 +82,7 @@ class Action(Enum):
         }[self]
 
 
-Checkpoint = namedtuple('Checkpoint', ['position', 'orientation', 'action'])
+Checkpoint = namedtuple('Checkpoint', ['position', 'orientation', 'action'], defaults=(None, None))
 Checkpoint.__doc__ = """
                      Data class that represents a point of interest in a solution
                          to a chamber.
