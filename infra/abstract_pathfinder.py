@@ -4,9 +4,11 @@ Provide the Pathfinder class
 
 from time import time, sleep
 from threading import Thread, RLock
+from multiprocessing.connection import Connection
 
 from ..Qualifiers.qualifiers import qualify, private, protected, public, final
-from utils import Payload
+from utils import Payload, Idea
+from mapping_utils import Observation
 from abstract_view_observer import ViewObserver
 from abstract_choreographer import Choreographer
 
@@ -29,7 +31,7 @@ class Pathfinder:
     # --------------------------------- CONSTRUCTOR ------------------------------------------- #
 
     @public
-    def __init__(self, conn_to_view_observer, conn_to_choreographer):
+    def __init__(self, conn_to_view_observer: Connection, conn_to_choreographer: Connection):
         """
         Initialize a Pathfinder with the given connections to a
             ViewObserver object and a Choreographer object
@@ -54,7 +56,7 @@ class Pathfinder:
 
     @public
     @final
-    def main(self):
+    def main(self) -> None:
         """
         Main entry point
         :return: None
@@ -83,7 +85,7 @@ class Pathfinder:
 
     @private
     @final
-    def handle_map_info(self, payload):
+    def handle_map_info(self, payload: Payload) -> None:
         """
         Handle the MAP_INFO message
         :param payload: Payload
@@ -98,7 +100,7 @@ class Pathfinder:
 
     @private
     @final
-    def notify_idea(self):
+    def notify_idea(self) -> None:
         """
         Notify the Choreographer of a new idea
         :return: None
@@ -111,7 +113,7 @@ class Pathfinder:
 
     @private
     @final
-    def request_map_info(self):
+    def request_map_info(self) -> None:
         """
         Request map info from the ViewObserver
         :return: None
@@ -124,7 +126,7 @@ class Pathfinder:
 
     @property
     @protected
-    def idea(self):
+    def idea(self) -> Idea:
         """
         Get the current idea
         """
@@ -133,7 +135,7 @@ class Pathfinder:
 
     @idea.setter
     @protected
-    def idea(self, idea):
+    def idea(self, idea: Idea) -> None:
         """
         Setter for idea
         """
@@ -143,7 +145,7 @@ class Pathfinder:
 
     @property
     @protected
-    def map(self):
+    def map(self) -> Observation:
         """
         Get the current map
         """
@@ -151,7 +153,7 @@ class Pathfinder:
             return self.__current_map
 
     @protected
-    def require_map_update(self):
+    def require_map_update(self) -> None:
         """
         Set the map to require an update from the ViewObserver
         :return: None
@@ -162,7 +164,7 @@ class Pathfinder:
     # --------------------------------- ABSTRACT METHODS -------------------------------------- #
 
     @protected
-    def run_pathfinder(self):
+    def run_pathfinder(self) -> None:
         """
         Must be implemented by a subclass to run its pathfinding algorithm. This method
             should call self.idea to get the current idea and set the value of self.idea

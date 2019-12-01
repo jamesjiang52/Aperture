@@ -2,10 +2,14 @@
 Provide the Choreographer class
 """
 
+from typing import Tuple
 from threading import Thread, RLock
+from multiprocessing.connection import Connection
+
+import numpy as np
 
 from ..Qualifiers.qualifiers import qualify, private, protected, public, final
-from utils import Payload
+from utils import Payload, Idea
 from abstract_view_observer import ViewObserver
 
 
@@ -25,7 +29,7 @@ class Choreographer:
     # --------------------------------- CONSTRUCTOR ------------------------------------------- #
 
     @public
-    def __init__(self, conn_to_view_observer, conn_to_pathfinder):
+    def __init__(self, conn_to_view_observer: Connection, conn_to_pathfinder: Connection):
         """
         Initialize a Choreographer with the given connections to a
             ViewObserver object and a Pathfinder object
@@ -48,7 +52,7 @@ class Choreographer:
 
     @public
     @final
-    def main(self):
+    def main(self) -> None:
         """
         Main entry point
         :return: None
@@ -74,7 +78,7 @@ class Choreographer:
 
     @private
     @final
-    def handle_new_idea(self, payload):
+    def handle_new_idea(self, payload: Payload) -> None:
         """
         Handle the NEW_IDEA message
         :param payload: Payload
@@ -85,7 +89,7 @@ class Choreographer:
 
     @private
     @final
-    def handle_player_info(self, payload):
+    def handle_player_info(self, payload: Payload) -> None:
         """
         Handle the PLAYER_INFO message
         :param payload: Payload
@@ -98,7 +102,7 @@ class Choreographer:
 
     @private
     @final
-    def request_player_info(self):
+    def request_player_info(self) -> None:
         """
         Request player info from the ViewObserver
         :return: None
@@ -111,7 +115,7 @@ class Choreographer:
 
     @property
     @protected
-    def player_info(self):
+    def player_info(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get player info
         """
@@ -120,7 +124,7 @@ class Choreographer:
 
     @property
     @protected
-    def idea(self):
+    def idea(self) -> Idea:
         """
         Get the current idea
         """
@@ -130,7 +134,7 @@ class Choreographer:
     # --------------------------------- ABSTRACT METHODS -------------------------------------- #
 
     @protected
-    def run_choreography(self):
+    def run_choreography(self) -> None:
         """
         Start managing interactions between the player and the game. This
             method can make use of self.player_info to get the most

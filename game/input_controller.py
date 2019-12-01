@@ -303,3 +303,51 @@ def __test_all_operations():
 
 if __name__ == "__main__":
     __test_all_operations()
+
+
+# ----------------- BEGIN REVAMP -----------------
+
+CAMERA_INSTANT = 11111
+CAMERA_FAST = 22222
+CAMERA_SLOW = 33333
+CAMERA_NUDGE = 44444
+
+def move_camera(delta, speed=CAMERA_FAST):
+    # does some stuff asynchronously
+    pass
+
+
+def stop_camera():
+    pass
+
+
+def move_forward(tap=False):
+    pass
+
+
+def stop_move_forward():
+    pass
+
+
+def move_backward(tap=False):
+    pass
+
+
+def stop_move_backward():
+    pass
+
+
+def move_left(tap=False):
+    pass
+
+
+def stop_move_left():
+    pass
+
+
+def move_right(tap=False):
+    pass
+
+
+def stop_move_right():
+    pass

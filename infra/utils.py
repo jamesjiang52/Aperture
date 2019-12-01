@@ -4,7 +4,11 @@ Utility functions and classes for the backend
 
 from collections import namedtuple
 from enum import Enum
-from typing import List
+from typing import List, Callable
+
+import numpy as np
+
+from ..game import input_controller
 
 
 class Entity(Enum):
@@ -41,6 +45,29 @@ class Surface(Enum):
     """
     P = 0
     NP = 1
+
+
+class Direction(Enum):
+    """
+    Move directions
+    """
+    Forward = 1
+    Backward = 2
+    Left = 3
+    Right = 4
+
+    def input_function(self):
+        """
+        Return the input_controller movement function
+            corresponding to the direction
+        :return:
+        """
+        return {
+            Direction.Forward: input_controller.move_forward,
+            Direction.Backward: input_controller.move_backward,
+            Direction.Left: input_controller.move_left,
+            Direction.Right: input_controller.move_right
+        }[self]
 
 
 class Action(Enum):
@@ -81,8 +108,24 @@ class Action(Enum):
             Action.Interact: True
         }[self]
 
+    def execute(self):
+        """
+        Input the Action to the game if it is one-shot
+        :return: None
+        """
+        if self == Action.Jump:
+            input_controller.jump()
+        elif self == Action.Portal1:
+            input_controller.shoot_blue_portal()
+        elif self == Action.Portal2:
+            input_controller.shoot_orange_portal()
+        elif self == Action.Interact:
+            input_controller.interact()
+        else:
+            raise ValueError(f"Action {self.name} is not one-shot")
 
-Checkpoint = namedtuple('Checkpoint', ['position', 'orientation', 'action'], defaults=(None, None))
+
+Checkpoint = namedtuple('Checkpoint', ['position', 'orientation', 'action', 'direction'], defaults=(None, None, None))
 Checkpoint.__doc__ = """
                      Data class that represents a point of interest in a solution
                          to a chamber.
@@ -91,12 +134,14 @@ Checkpoint.__doc__ = """
                      :param action: Action where is_one_shot returns True 
                          (to be executed after player reaches the desired
                          position and orientation)
+                     :param direction: Direction (for use after/during jump
+                         actions only) 
                      """
 
-Idea = List[Checkpoint]
+Idea = Callable[[np.ndarray], List[Checkpoint]]
 Idea.__doc__ = """
-               Represents a series of Checkpoints in the order they are to be
-                   carried out
+               Given a position, return a series of Checkpoints in the order they
+                   are to be carried out
                """
 
 EntityObservation = namedtuple('EntityObservation', ['entity', 'position', 'orientation'])
@@ -126,3 +171,39 @@ ReferenceObservation.__doc__ = """
                                """
 
 Payload = namedtuple('Payload', ['code', 'data'], defaults=(None,))
+
+
+def normalize(arr):
+    """
+    Returns the given array normalized to have magnitude 1
+    :param arr: 3D numpy array
+    :return: 3D numpy array
+    """
+    norm = np.linalg.norm(arr)
+
+    if norm == 0:
+        raise ValueError("Array cannot be the zero vector")
+
+    return arr / norm
+
+
+def are_positions_close(pos1, pos2, epsilon):
+    """
+    Returns True if pos1 is epsilon-close to pos2, otherwise False
+    :param pos1: 3D numpy array
+    :param pos2: 3D numpy array
+    :param epsilon: float
+    :return: boolean
+    """
+    return np.linalg.norm(pos1 - pos2) <= epsilon
+
+
+def are_orientations_close(or1, or2, epsilon):
+    """
+    Returns True if or1 is epsilon-close to or2, otherwise False
+    :param or1: 3D numpy array
+    :param or2: 3D numpy array
+    :param epsilon: -1 <= float <= 1
+    :return: boolean
+    """
+    return np.dot(normalize(or1), normalize(or2)) >= epsilon
