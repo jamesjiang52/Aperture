@@ -40,7 +40,7 @@ controller = controllerlib.CreateController()
 
 
 def move_camera(delta, speed=CAMERA_FAST):
-    controllerlib.camera(controller, delta[0], delta[1], speed)
+    controllerlib.camera(controller, int(delta[0]), int(delta[1]), speed)
 
 
 def stop_camera():
@@ -82,14 +82,14 @@ def stop_move_right():
 def jump():
     controllerlib.jump(controller)
 
-    
+
 def interact():
     controllerlib.interact(controller)
-    
-    
-def shootPortal1():
+
+
+def shoot_portal1():
     controllerlib.blue(controller)
-    
-    
-def shootPortal2():
+
+
+def shoot_portal2():
     controllerlib.orange(controller)

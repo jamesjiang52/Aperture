@@ -85,7 +85,7 @@ class Choreo(Choreographer):
         :return: None
         """
         current_orientation = self.player_info[1]
-        direction = Choreo.__get_projected_direction(current_orientation, target_orientation)
+        direction = 100 * Choreo.__get_projected_direction(current_orientation, target_orientation)
         input_controller.move_camera(direction, speed=input_controller.CAMERA_FAST)
 
         while not utils.are_orientations_close(self.player_info[1],
@@ -106,8 +106,9 @@ class Choreo(Choreographer):
             if current_orientation == last_orientation:
                 sleep(Choreo.__TURN_WAIT_INTERVAL)
                 continue
-            input_controller.move_camera(Choreo.__get_projected_direction(current_orientation, target_orientation),
-                                         speed=input_controller.CAMERA_NUDGE)
+            input_controller.move_camera(
+                100 * Choreo.__get_projected_direction(current_orientation, target_orientation),
+                speed=input_controller.CAMERA_NUDGE)
             last_orientation = current_orientation
 
     @protected
