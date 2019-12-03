@@ -2,60 +2,94 @@
 Utility module for sending Portal 2 input
 """
 
-import ctypes
+import os
+from ctypes import *
+import _ctypes
 
+DLL_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'input_controller', 'input_controller.dll')
 
-controllerlib = None  # TODO
+_ctypes.LoadLibrary(DLL_PATH)
+controllerlib = cdll.LoadLibrary(DLL_PATH)
+
+MOVE_HOLD = c_int.in_dll(controllerlib, 'MOVE_HOLD')
+MOVE_TAP = c_int.in_dll(controllerlib, 'MOVE_TAP')
+
+CAMERA_INSTANT = c_int.in_dll(controllerlib, 'CAMERA_INSTANT')
+CAMERA_FAST = c_int.in_dll(controllerlib, 'CAMERA_FAST')
+CAMERA_SLOW = c_int.in_dll(controllerlib, 'CAMERA_SLOW')
+CAMERA_NUDGE = c_int.in_dll(controllerlib, 'CAMERA_NUDGE')
+
+controllerlib.CreateController.restype = c_void_p
+controllerlib.DeleteController.argtypes = [c_void_p]
+controllerlib.forward.argtypes = [c_void_p, c_int]
+controllerlib.backward.argtypes = [c_void_p, c_int]
+controllerlib.left.argtypes = [c_void_p, c_int]
+controllerlib.right.argtypes = [c_void_p, c_int]
+controllerlib.freeze.argtypes = [c_void_p]
+controllerlib.jump.argtypes = [c_void_p]
+controllerlib.interact.argtypes = [c_void_p]
+controllerlib.blue.argtypes = [c_void_p]
+controllerlib.orange.argtypes = [c_void_p]
+controllerlib.camera.argtypes = [c_void_p, c_long, c_long, c_int]
+controllerlib.stop.argtypes = [c_void_p]
 
 # We opt to let this memory leak since we don't know
-#   when the game will stop running, plus the memory
-#   is only 16 bits anyways
-Controller = controllerlib.CreateController()
-
-MOVE_HOLD = controllerlib.MOVE_HOLD
-MOVE_TAP = controllerlib.MOVE_TAP
-
-CAMERA_INSTANT = controllerlib.CAMERA_INSTANT
-CAMERA_FAST = controllerlib.CAMERA_FAST
-CAMERA_SLOW = controllerlib.CAMERA_SLOW
-CAMERA_NUDGE = controllerlib.CAMERA_NUDGE
+#   when the game will stop running, plus the leaked
+#   memory is only 16 bits anyways
+controller = controllerlib.CreateController()
 
 
 def move_camera(delta, speed=CAMERA_FAST):
-    controllerlib.camera(Controller, delta[0], delta[1], speed)
+    controllerlib.camera(controller, delta[0], delta[1], speed)
 
 
 def stop_camera():
-    controllerlib.stop(Controller)
+    controllerlib.stop(controller)
 
 
 def move_forward(tap=False):
-    controllerlib.forward(Controller, MOVE_TAP if tap else MOVE_HOLD)
+    controllerlib.forward(controller, MOVE_TAP if tap else MOVE_HOLD)
 
 
 def stop_move_forward():
-    controllerlib.freeze(Controller)
+    controllerlib.freeze(controller)
 
 
 def move_backward(tap=False):
-    pass
+    controllerlib.backward(controller, MOVE_TAP if tap else MOVE_HOLD)
 
 
 def stop_move_backward():
-    pass
+    controllerlib.freeze(controller)
 
 
 def move_left(tap=False):
-    pass
+    controllerlib.left(controller, MOVE_TAP if tap else MOVE_HOLD)
 
 
 def stop_move_left():
-    pass
+    controllerlib.freeze(controller)
 
 
 def move_right(tap=False):
-    pass
+    controllerlib.right(controller, MOVE_TAP if tap else MOVE_HOLD)
 
 
 def stop_move_right():
-    pass
+    controllerlib.freeze(controller)
+
+
+def jump():
+    controllerlib.jump(controller)
+
+    
+def interact():
+    controllerlib.interact(controller)
+    
+    
+def shootPortal1():
+    controllerlib.blue(controller)
+    
+    
+def shootPortal2():
+    controllerlib.orange(controller)

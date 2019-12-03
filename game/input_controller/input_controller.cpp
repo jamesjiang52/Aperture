@@ -1,6 +1,3 @@
-#define WINVER 0x0A00
-#define _WIN32_WINNT 0x0A00
-
 #include <windows.h>
 
 #include <new>
@@ -24,8 +21,8 @@
 #define MOUSE_RIGHT_UP 0x0010
 
 #define NUDGE_PIXELS 6
-#define CAMERA_FAST_PIXELS 5
-#define CAMERA_SLOW_PIXELS 2
+#define CAMERA_FAST_PIXELS 9
+#define CAMERA_SLOW_PIXELS 3
 
 struct ControllerImpl {
     std::atomic_bool movementStopRequested{false};
@@ -135,10 +132,10 @@ Controller::~Controller() {
 void Controller::forward(MovementOption option) {
     switch (option) {
         case MovementOption::Hold:
-            std::thread(impl->holdForward).detach();
+            std::thread(&ControllerImpl::holdForward, impl).detach();
             break;
         case MovementOption::Tap:
-            std::thread(impl->tapKey, KEY_W).detach();
+            std::thread(&ControllerImpl::tapKey, impl, KEY_W).detach();
             break;
     }
 }
@@ -146,10 +143,10 @@ void Controller::forward(MovementOption option) {
 void Controller::backward(MovementOption option) {
     switch (option) {
         case MovementOption::Hold:
-            std::thread(impl->holdBackward).detach();
+            std::thread(&ControllerImpl::holdBackward, impl).detach();
             break;
         case MovementOption::Tap:
-            std::thread(impl->tapKey, KEY_S).detach();
+            std::thread(&ControllerImpl::tapKey, impl, KEY_S).detach();
             break;
     }
 }
@@ -157,10 +154,10 @@ void Controller::backward(MovementOption option) {
 void Controller::left(MovementOption option) {
     switch (option) {
         case MovementOption::Hold:
-            std::thread(impl->holdLeft).detach();
+            std::thread(&ControllerImpl::holdLeft, impl).detach();
             break;
         case MovementOption::Tap:
-            std::thread(impl->tapKey, KEY_A).detach();
+            std::thread(&ControllerImpl::tapKey, impl, KEY_A).detach();
             break;
     }
 }
@@ -168,10 +165,10 @@ void Controller::left(MovementOption option) {
 void Controller::right(MovementOption option) {
     switch (option) {
         case MovementOption::Hold:
-            std::thread(impl->holdRight).detach();
+            std::thread(&ControllerImpl::holdRight, impl).detach();
             break;
         case MovementOption::Tap:
-            std::thread(impl->tapKey, KEY_D).detach();
+            std::thread(&ControllerImpl::tapKey, impl, KEY_D).detach();
             break;
     }
 }
@@ -181,11 +178,11 @@ void Controller::stop() {
 }
         
 void Controller::jump() {
-    std::thread(impl->tapKey, KEY_SPACE).detach();
+    std::thread(&ControllerImpl::tapKey, impl, KEY_SPACE).detach();
 }
         
 void Controller::interact() {
-    std::thread(impl->tapKey, KEY_E).detach();
+    std::thread(&ControllerImpl::tapKey, impl, KEY_E).detach();
 }
 
 void Controller::bluePortal() {
@@ -204,10 +201,10 @@ void Controller::camera(long dx, long dy, CameraOption option) {
             impl->moveCursor(dx, dy);
             break;
         case CameraOption::Fast:
-            std::thread(impl->cameraFast, dx, dy).detach();
+            std::thread(&ControllerImpl::cameraFast, impl, dx, dy).detach();
             break;
         case CameraOption::Slow:
-            std::thread(impl->cameraSlow, dx, dy).detach();
+            std::thread(&ControllerImpl::cameraSlow, impl, dx, dy).detach();
             break;
         case CameraOption::Nudge:
             impl->moveCursor(dx * NUDGE_PIXELS / (dx + dy), dy * NUDGE_PIXELS / (dx + dy));
@@ -219,68 +216,65 @@ void Controller::stopCamera() {
     impl->cameraStopRequested = true;
 }
 
+
 extern "C" {
 
-    int MOVE_HOLD = 1;
-    int MOVE_TAP = 2;
-    int CAMERA_INSTANT = 11;
-    int CAMERA_FAST = 12;
-    int CAMERA_SLOW = 13;
-    int CAMERA_NUDGE = 14;
+    __declspec(dllexport) int MOVE_HOLD = 1;
+    __declspec(dllexport) int MOVE_TAP = 2;
+    __declspec(dllexport) int CAMERA_INSTANT = 11;
+    __declspec(dllexport) int CAMERA_FAST = 12;
+    __declspec(dllexport) int CAMERA_SLOW = 13;
+    __declspec(dllexport) int CAMERA_NUDGE = 14;
 
-    void* CreateController() {
+    __declspec(dllexport) void* CreateController() {
         return new(std::nothrow) Controller;
     }
 
-    void DeleteController(void* controller) {
+    __declspec(dllexport) void DeleteController(void* controller) {
         delete reinterpret_cast<Controller*>(controller);
     }
 
-    void forward(void* controller, int option) {
+    __declspec(dllexport) void forward(void* controller, int option) {
         reinterpret_cast<Controller*>(controller)->forward(static_cast<MovementOption>(option));
     }
 
-    void backward(void* controller, int option) {
+    __declspec(dllexport) void backward(void* controller, int option) {
         reinterpret_cast<Controller*>(controller)->backward(static_cast<MovementOption>(option));
     }
 
-    void left(void* controller, int option) {
+    __declspec(dllexport) void left(void* controller, int option) {
         reinterpret_cast<Controller*>(controller)->left(static_cast<MovementOption>(option));
     }
 
-    void right(void* controller, int option) {
+    __declspec(dllexport) void right(void* controller, int option) {
         reinterpret_cast<Controller*>(controller)->right(static_cast<MovementOption>(option));
     }
 
-    void freeze(void* controller) {
+    __declspec(dllexport) void freeze(void* controller) {
         reinterpret_cast<Controller*>(controller)->stop();
     }
 
-    void jump(void* controller) {
+    __declspec(dllexport) void jump(void* controller) {
         reinterpret_cast<Controller*>(controller)->jump();
     }
 
-    void interact(void* controller) {
+    __declspec(dllexport) void interact(void* controller) {
         reinterpret_cast<Controller*>(controller)->interact();
     }
 
-    void blue(void* controller) {
+    __declspec(dllexport) void blue(void* controller) {
         reinterpret_cast<Controller*>(controller)->bluePortal();
     }
 
-    void orange(void* controller) {
+    __declspec(dllexport) void orange(void* controller) {
         reinterpret_cast<Controller*>(controller)->orangePortal();
     }
 
-    void camera(void* controller, long dx, long dy, int option) {
+    __declspec(dllexport) void camera(void* controller, long dx, long dy, int option) {
         reinterpret_cast<Controller*>(controller)->camera(dx, dy, static_cast<CameraOption>(option));
     }
 
-    void stop(void* controller) {
+    __declspec(dllexport) void stop(void* controller) {
         reinterpret_cast<Controller*>(controller)->stopCamera();
     }
 }
-
-
-
-
