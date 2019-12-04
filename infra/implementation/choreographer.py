@@ -176,7 +176,8 @@ class Choreo(Choreographer):
             checkpoint.action.execute()
             if checkpoint.action == utils.Action.Jump and checkpoint.direction:
                 # ideally, we would move in the direction until the player's z
-                # position stops changing, but for now we just tap the direction
+                # position stops changing (or some other boolean condition),
+                # but for now we just tap the direction
                 checkpoint.direction.input_function(tap=True)
 
         return True

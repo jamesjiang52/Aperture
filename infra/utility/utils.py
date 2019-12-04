@@ -116,9 +116,9 @@ class Action(Enum):
         if self == Action.Jump:
             input_controller.jump()
         elif self == Action.Portal1:
-            input_controller.shoot_blue_portal()
+            input_controller.shoot_portal1()
         elif self == Action.Portal2:
-            input_controller.shoot_orange_portal()
+            input_controller.shoot_portal2()
         elif self == Action.Interact:
             input_controller.interact()
         else:
